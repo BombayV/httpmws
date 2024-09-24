@@ -2,24 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/bombayv/learning-go/cmd/api/server/router/hello"
+	"github.com/bombayv/learning-go/cmd/api/server/router/middleware"
+	"github.com/bombayv/learning-go/cmd/api/server/router/notfound"
 	"net/http"
 )
 
 func main() {
-	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		// Return a json response
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "This is a test"}`))
-	})
+	middleware.InitMiddlewares()
+	notfound.InitRoutes()
+	hello.InitRoutes()
 
-	// Route with parameters
-	http.HandleFunc("GET /test/{id}", func(w http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("id")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf(`{"message": "This is a test with id %s"}`, id)))
-	})
 	fmt.Println("Server started at http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

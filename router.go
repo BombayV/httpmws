@@ -5,9 +5,14 @@ import (
 	"net/http"
 )
 
-var AllRoutes = make(map[string]bool)
+var allRoutes = make(map[string]bool)
+var currentRouter *http.ServeMux
 
 func newRoute(method string, path string, handler http.HandlerFunc, mws ...string) {
+	if currentRouter == nil {
+		panic("Router not set. Make sure to call UseRouter first")
+	}
+
 	newRouteName := method + " " + path
 
 	for _, mw := range mws {
@@ -16,32 +21,43 @@ func newRoute(method string, path string, handler http.HandlerFunc, mws ...strin
 		}
 	}
 
-	http.HandleFunc(newRouteName, useMiddleware(handler, mws...))
+	if allRoutes[newRouteName] {
+		panic(fmt.Sprintf("Route %s already registered", newRouteName))
+	}
 
-	AllRoutes[newRouteName] = true
+	currentRouter.HandleFunc(newRouteName, useMiddleware(handler, mws...))
+	allRoutes[newRouteName] = true
+
+	fmt.Printf("Route %s registered\n", newRouteName)
 }
 
-// NewGetRoute creates a new GET route with the given path, http handler and middlewares
-func NewGetRoute(path string, handler http.HandlerFunc, mws ...string) {
+// UseRouter initializes the router
+func UseRouter(router *http.ServeMux) *http.ServeMux {
+	currentRouter = router
+	return currentRouter
+}
+
+// RegisterGetRoute creates a new GET route with the given path, http handler and middlewares
+func RegisterGetRoute(path string, handler http.HandlerFunc, mws ...string) {
 	newRoute(http.MethodGet, path, handler, mws...)
 }
 
-// NewPostRoute creates a new POST route with the given path, http handler and middlewares
-func NewPostRoute(path string, handler http.HandlerFunc, mws ...string) {
+// RegisterPostRoute creates a new POST route with the given path, http handler and middlewares
+func RegisterPostRoute(path string, handler http.HandlerFunc, mws ...string) {
 	newRoute(http.MethodPost, path, handler, mws...)
 }
 
-// NewPutRoute creates a new PUT route with the given path, http handler and middlewares
-func NewPutRoute(path string, handler http.HandlerFunc, mws ...string) {
+// RegisterPutRoute creates a new PUT route with the given path, http handler and middlewares
+func RegisterPutRoute(path string, handler http.HandlerFunc, mws ...string) {
 	newRoute(http.MethodPut, path, handler, mws...)
 }
 
-// NewDeleteRoute creates a new DELETE route with the given path, http handler and middlewares
-func NewDeleteRoute(path string, handler http.HandlerFunc, mws ...string) {
+// RegisterDeleteRoute creates a new DELETE route with the given path, http handler and middlewares
+func RegisterDeleteRoute(path string, handler http.HandlerFunc, mws ...string) {
 	newRoute(http.MethodDelete, path, handler, mws...)
 }
 
-// NewPatchRoute creates a new PATCH route with the given path, http handler and middlewares
-func NewPatchRoute(path string, handler http.HandlerFunc, mws ...string) {
+// RegisterPatchRoute creates a new PATCH route with the given path, http handler and middlewares
+func RegisterPatchRoute(path string, handler http.HandlerFunc, mws ...string) {
 	newRoute(http.MethodPatch, path, handler, mws...)
 }

@@ -2,29 +2,45 @@ package httpmws
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 )
 
-var AllMiddleware = make(map[string]func(w http.ResponseWriter, r *http.Request) bool)
+type wrappedWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+var allMiddleware = make(map[string]func(w http.ResponseWriter, r *http.Request) bool)
+
+func (w *wrappedWriter) WriteHeader(statusCode int) {
+	w.ResponseWriter.WriteHeader(statusCode)
+	w.statusCode = statusCode
+}
 
 func getMiddleware(name string) func(w http.ResponseWriter, r *http.Request) bool {
-	return AllMiddleware[name]
+	return allMiddleware[name]
 }
 
 func hasMiddleware(name string) bool {
-	_, ok := AllMiddleware[name]
+	_, ok := allMiddleware[name]
 	return ok
 }
 
 func useMiddleware(next http.HandlerFunc, mws ...string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		wrapped := &wrappedWriter{w, http.StatusOK}
 		for _, m := range mws {
-			if !getMiddleware(m)(w, r) {
+			if !getMiddleware(m)(wrapped, r) {
+				log.Printf(generateLogMessage(r, wrapped.statusCode, time.Since(start)))
 				return
 			}
 		}
 
-		next(w, r)
+		next.ServeHTTP(wrapped, r)
+		log.Printf(generateLogMessage(r, wrapped.statusCode, time.Since(start)))
 	}
 }
 
@@ -35,5 +51,5 @@ func RegisterMw(name string, fn func(w http.ResponseWriter, r *http.Request) boo
 		panic(fmt.Sprintf("Middleware %s already registered", name))
 	}
 
-	AllMiddleware[name] = fn
+	allMiddleware[name] = fn
 }

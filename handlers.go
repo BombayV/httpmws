@@ -69,9 +69,10 @@ func generateLogMessage(r *http.Request, statusCode int, duration time.Duration)
 	return fmt.Sprintf("%s | %s | %s | %s | %s", title, code, duration, method, r.URL.Path)
 }
 
+// ErrorResponse sends a JSON error response to the client
+// with the specified status code and message
 func ErrorResponse(w http.ResponseWriter, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
 	errResponse := &errorResponse{}
 	errResponse.Error.Code = code
 	errResponse.Error.Message = message
@@ -83,14 +84,18 @@ func ErrorResponse(w http.ResponseWriter, code int, message string) {
 		return
 	}
 
+	w.WriteHeader(code)
 	written, err := w.Write(jData)
 	if err != nil {
-		panic(fmt.Sprintf("Error writing response: %s", err))
+		fmt.Printf("Error writing response: %s\n", err)
 	}
-
-	fmt.Printf("Response written: %d bytes\n", written)
+	if written == 0 {
+		fmt.Println("No data written")
+	}
 }
 
+// JsonResponse sends a JSON response to the client
+// with the specified status code, message and data
 func JsonResponse(w http.ResponseWriter, code int, message string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -105,8 +110,9 @@ func JsonResponse(w http.ResponseWriter, code int, message string, data interfac
 
 	written, err := w.Write(jData)
 	if err != nil {
-		panic(fmt.Sprintf("Error writing response: %s", err))
+		fmt.Printf("Error writing response: %s\n", err)
 	}
-
-	fmt.Printf("Response written: %d bytes\n", written)
+	if written == 0 {
+		fmt.Println("No data written")
+	}
 }
